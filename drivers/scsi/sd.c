@@ -98,6 +98,12 @@ MODULE_ALIAS_SCSI_DEVICE(TYPE_MOD);
 MODULE_ALIAS_SCSI_DEVICE(TYPE_RBC);
 MODULE_ALIAS_SCSI_DEVICE(TYPE_ZBC);
 
+static unsigned int stop_before_reboot = 0;
+
+module_param(stop_before_reboot, uint, 0644);
+MODULE_PARM_DESC(stop_before_reboot,
+		 "stop disks before reboot");
+
 #if !defined(CONFIG_DEBUG_BLOCK_EXT_DEVT)
 #define SD_MINORS	16
 #else
@@ -3543,9 +3549,11 @@ static void sd_shutdown(struct device *dev)
 		sd_sync_cache(sdkp, NULL);
 	}
 
-	if (system_state != SYSTEM_RESTART && sdkp->device->manage_start_stop) {
-		sd_printk(KERN_NOTICE, sdkp, "Stopping disk\n");
-		sd_start_stop_device(sdkp, 0);
+	if (sdkp->device->manage_start_stop) {
+		if (system_state != SYSTEM_RESTART || stop_before_reboot) {
+			sd_printk(KERN_NOTICE, sdkp, "Stopping disk\n");
+			sd_start_stop_device(sdkp, 0);
+		}
 	}
 }
 

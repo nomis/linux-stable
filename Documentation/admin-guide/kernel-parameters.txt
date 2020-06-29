@@ -4195,7 +4195,7 @@
 				[w[arm] | c[old] | h[ard] | s[oft] | g[pio]] \
 				[[,]s[mp]#### \
 				[[,]b[ios] | a[cpi] | k[bd] | t[riple] | e[fi] | p[ci]] \
-				[[,]f[orce]
+				[[,]f[orce] | C
 			Where reboot_mode is one of warm (soft) or cold (hard) or gpio
 					(prefix with 'panic_' to set mode for panic
 					reboot only),
@@ -4203,6 +4203,9 @@
 			      reboot_force is either force or not specified,
 			      reboot_cpu is s[mp]#### with #### being the processor
 					to be used for rebooting.
+			Quirks:
+				C = Rebooting includes a power cycle, prepare
+				    for a power off instead of a restart.
 
 	relax_domain_level=
 			[KNL, SMP] Set scheduler's default relax_domain_level.

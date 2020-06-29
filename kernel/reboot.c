@@ -45,6 +45,7 @@ int reboot_default = 1;
 int reboot_cpu;
 enum reboot_type reboot_type = BOOT_ACPI;
 int reboot_force;
+int reboot_quirks;
 
 /*
  * If set, this is used for preparing the system to power off.
@@ -71,7 +72,15 @@ EXPORT_SYMBOL_GPL(emergency_restart);
 void kernel_restart_prepare(char *cmd)
 {
 	blocking_notifier_call_chain(&reboot_notifier_list, SYS_RESTART, cmd);
-	system_state = SYSTEM_RESTART;
+	if (reboot_quirks & REBOOT_QUIRK_POWER_CYCLE) {
+		/*
+		 * The reboot will include a power cycle, so prepare all
+		 * devices for a power off.
+		 */
+		system_state = SYSTEM_POWER_OFF;
+	} else {
+		system_state = SYSTEM_RESTART;
+	}
 	usermodehelper_disable();
 	device_shutdown();
 }
@@ -582,6 +591,10 @@ static int __init reboot_setup(char *str)
 
 		case 'f':
 			reboot_force = 1;
+			break;
+
+		case 'C':
+			reboot_quirks |= REBOOT_QUIRK_POWER_CYCLE;
 			break;
 		}
 

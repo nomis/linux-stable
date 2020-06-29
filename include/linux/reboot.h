@@ -39,6 +39,10 @@ extern int reboot_default;
 extern int reboot_cpu;
 extern int reboot_force;
 
+#define REBOOT_QUIRK_POWER_CYCLE                BIT(0)
+
+extern int reboot_quirks;
+
 
 extern int register_reboot_notifier(struct notifier_block *);
 extern int unregister_reboot_notifier(struct notifier_block *);

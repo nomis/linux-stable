@@ -139,6 +139,13 @@ STACK_FRAME_NON_STANDARD(machine_real_restart);
  */
 static int __init set_pci_reboot(const struct dmi_system_id *d)
 {
+	/*
+	 * Only apply the DMI check if reboot_type hasn't been overridden
+	 * on the command line
+	 */
+	if (!reboot_default)
+		return 0;
+
 	if (reboot_type != BOOT_CF9_FORCE) {
 		reboot_type = BOOT_CF9_FORCE;
 		pr_info("%s series board detected. Selecting %s-method for reboots.\n",
@@ -149,10 +156,32 @@ static int __init set_pci_reboot(const struct dmi_system_id *d)
 
 static int __init set_kbd_reboot(const struct dmi_system_id *d)
 {
+	/*
+	 * Only apply the DMI check if reboot_type hasn't been overridden
+	 * on the command line
+	 */
+	if (!reboot_default)
+		return 0;
+
 	if (reboot_type != BOOT_KBD) {
 		reboot_type = BOOT_KBD;
 		pr_info("%s series board detected. Selecting %s-method for reboot.\n",
 			d->ident, "KBD");
+	}
+	return 0;
+}
+
+static int __init set_pci_power_cycle_reboot(const struct dmi_system_id *d)
+{
+	/*
+	 * This has to be applied even if reboot_type has been set on the
+	 * command line because that's the only way to enable PCI mode.
+	 */
+
+	if (reboot_type == BOOT_CF9_FORCE) {
+		reboot_quirks |= REBOOT_QUIRK_POWER_CYCLE;
+		pr_info("%s series board detected. Assume that a PCI reboot includes a power cycle.\n",
+			d->ident);
 	}
 	return 0;
 }
@@ -237,6 +266,14 @@ static const struct dmi_system_id reboot_dmi_table[] __initconst = {
 		.matches = {
 			DMI_MATCH(DMI_BOARD_VENDOR, "ASRock"),
 			DMI_MATCH(DMI_BOARD_NAME, "Q1900DC-ITX"),
+		},
+	},
+	{	/* PCI reboots cause a power cycle */
+		.callback = set_pci_power_cycle_reboot,
+		.ident = "ASRock Z170 Extreme4",
+		.matches = {
+			DMI_MATCH(DMI_BOARD_VENDOR, "ASRock"),
+			DMI_MATCH(DMI_BOARD_NAME, "Z170 Extreme4"),
 		},
 	},
 
@@ -497,18 +534,18 @@ static int __init reboot_init(void)
 	int rv;
 
 	/*
-	 * Only do the DMI check if reboot_type hasn't been overridden
-	 * on the command line
-	 */
-	if (!reboot_default)
-		return 0;
-
-	/*
 	 * The DMI quirks table takes precedence. If no quirks entry
 	 * matches and the ACPI Hardware Reduced bit is set and EFI
 	 * runtime services are enabled, force EFI reboot.
 	 */
 	rv = dmi_check_system(reboot_dmi_table);
+
+	/*
+	 * Only force EFI reboot if reboot_type hasn't been overridden
+	 * on the command line
+	 */
+	if (!reboot_default)
+		return 0;
 
 	if (!rv && efi_reboot_required() && !efi_runtime_disabled())
 		reboot_type = BOOT_EFI;

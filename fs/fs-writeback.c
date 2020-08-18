@@ -2449,7 +2449,7 @@ static void __writeback_inodes_sb_nr(struct super_block *sb, unsigned long nr,
 
 	if (!bdi_has_dirty_io(bdi) || bdi == &noop_backing_dev_info)
 		return;
-	WARN_ON(!rwsem_is_locked(&sb->s_umount));
+	WARN_ON_ONCE(!rwsem_is_locked(&sb->s_umount));
 
 	bdi_split_work_to_wbs(sb->s_bdi, &work, skip_if_busy);
 	wb_wait_for_completion(&done);

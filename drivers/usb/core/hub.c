@@ -4929,18 +4929,19 @@ fail:
 	return retval;
 }
 
-static void
+static bool
 check_highspeed(struct usb_hub *hub, struct usb_device *udev, int port1)
 {
 	struct usb_qualifier_descriptor	*qual;
 	int				status;
+	bool ret = false;
 
 	if (udev->quirks & USB_QUIRK_DEVICE_QUALIFIER)
-		return;
+		goto out;
 
 	qual = kmalloc(sizeof *qual, GFP_KERNEL);
 	if (qual == NULL)
-		return;
+		goto out;
 
 	status = usb_get_descriptor(udev, USB_DT_DEVICE_QUALIFIER, 0,
 			qual, sizeof *qual);
@@ -4953,8 +4954,11 @@ check_highspeed(struct usb_hub *hub, struct usb_device *udev, int port1)
 			queue_delayed_work(system_power_efficient_wq,
 					&hub->leds, 0);
 		}
+	        ret = true;
 	}
 	kfree(qual);
+out:
+        return ret;
 }
 
 static unsigned
@@ -5153,8 +5157,11 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 		/* check for devices running slower than they could */
 		if (le16_to_cpu(udev->descriptor.bcdUSB) >= 0x0200
 				&& udev->speed == USB_SPEED_FULL
-				&& highspeed_hubs != 0)
-			check_highspeed(hub, udev, port1);
+				&& highspeed_hubs != 0) {
+			if (check_highspeed(hub, udev, port1)) {
+				goto loop;
+			}
+		}
 
 		/* Store the parent's children[] pointer.  At this point
 		 * udev becomes globally accessible, although presumably

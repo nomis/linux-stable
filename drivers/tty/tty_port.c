@@ -96,8 +96,8 @@ void tty_port_init(struct tty_port *port)
 	mutex_init(&port->mutex);
 	mutex_init(&port->buf_mutex);
 	spin_lock_init(&port->lock);
-	port->close_delay = (50 * HZ) / 100;
-	port->closing_wait = (3000 * HZ) / 100;
+	port->close_delay = 0;
+	port->closing_wait = 65535;
 	port->client_ops = &tty_port_default_client_ops;
 	kref_init(&port->kref);
 }
